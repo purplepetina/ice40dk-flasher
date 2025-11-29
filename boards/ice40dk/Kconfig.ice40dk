@@ -1,0 +1,2 @@
+config BOARD_ICE40DK
+	select SOC_STM32F103X8

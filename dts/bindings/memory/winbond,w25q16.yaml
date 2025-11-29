@@ -1,0 +1,3 @@
+description: Winbond W25Q16 SPI flash used as a plain SPI device
+compatible: "winbond,w25q16"
+include: spi-device.yaml

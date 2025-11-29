@@ -1,0 +1,6 @@
+board:
+  name: ice40dk
+  full_name: ICE40DK Programmer
+  vendor: dkbuilder
+  socs:
+    - name: stm32f103xb
