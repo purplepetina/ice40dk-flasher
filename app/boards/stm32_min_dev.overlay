@@ -32,14 +32,15 @@
 };
 
 &pll {
-	mul = <15>;
+	mul = <12>;
 	clocks = <&clk_hsi>;
 	status="okay";
+	usbpre;
 };
 
 &rcc {
 	clocks = <&pll>;
-	clock-frequency = <DT_FREQ_M(60)>;
+	clock-frequency = <DT_FREQ_M(48)>;
 };
 
 &usart1 {

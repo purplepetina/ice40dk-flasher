@@ -29,6 +29,14 @@
 	aliases {
 		led0 = &led;
 	};
+
+	hid_dev_0: hid_dev_0 {
+		compatible = "zephyr,hid-device";
+		label = "HID0";
+		protocol-code = "none";
+		in-polling-period-us = <1000>;
+		in-report-size = <64>;
+	};
 };
 
 &clk_hse {
@@ -45,7 +53,6 @@
 };
 
 &pll {
-    mul = <1>;
     clocks = <&clk_hsi>;
     status = "okay";
 };
@@ -56,7 +63,7 @@
 	ahb-prescaler = <1>;
 	apb1-prescaler = <1>;
 	apb2-prescaler = <1>;
-	/* usbpre not set: USB clock = 72 / 1.5: 48MHz */
+	/* usbpre not set: USB clock = 48 / 1: 48MHz */
 };
 
 

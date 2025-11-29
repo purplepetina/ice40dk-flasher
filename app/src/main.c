@@ -9,6 +9,7 @@
 #include <zephyr/usb/class/usbd_hid.h>
 #include <zephyr/usb/usbd.h>
 
+#include "usbd_init.h"
 #include "w25q16_hal.h"
 
 #define RESET_PIN DT_NODELABEL(crst)
@@ -23,28 +24,35 @@ LOG_MODULE_REGISTER(main);
 
 static struct gpio_dt_spec crst = GPIO_DT_SPEC_GET(RESET_PIN, gpios);
 static const uint8_t hid_report_desc[] = {
-    HID_USAGE_PAGE(0xFF00), /* Vendor-defined page */
-    HID_USAGE(0x01),        /* Vendor usage */
-    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+    0x06, 0x00, 0xFF, // USAGE_PAGE (Vendor Defined 0xFF00)
+    0x09, 0x01,       // USAGE (Vendor Usage 1)
+    0xA1, 0x01,       // COLLECTION (Application)
 
-    /* All bytes are 0..255 */
-    HID_LOGICAL_MIN8(0x00),
-    HID_LOGICAL_MAX8(0xFF),
+    // OUT report: host -> device
+    0x09, 0x02,       //   USAGE (Vendor Usage 2)
+    0x15, 0x00,       //   LOGICAL_MINIMUM (0)
+    0x26, 0xFF, 0x00, //   LOGICAL_MAXIMUM (255)
+    0x75, 0x08,       //   REPORT_SIZE (8 bits)
+    0x95, 0x40,       //   REPORT_COUNT (64 bytes)
+    0x91, 0x02,       //   OUTPUT (Data,Var,Abs)
 
-    /* 64 bytes of data */
-    HID_REPORT_SIZE(8),   /* 8 bits per field (1 byte) */
-    HID_REPORT_COUNT(64), /* 64 of those -> 64 bytes */
+    // IN report: device -> host
+    0x09, 0x03,       //   USAGE (Vendor Usage 3)
+    0x15, 0x00,       //   LOGICAL_MINIMUM (0)
+    0x26, 0xFF, 0x00, //   LOGICAL_MAXIMUM (255)
+    0x75, 0x08,       //   REPORT_SIZE (8 bits)
+    0x95, 0x40,       //   REPORT_COUNT (64 bytes)
+    0x81, 0x02,       //   INPUT (Data,Var,Abs)
 
-    HID_USAGE(0x01), /* "Data buffer" */
-    HID_END_COLLECTION,
+    0xC0 // END_COLLECTION
 };
 
-static void mouse_iface_ready(const struct device *dev, const bool ready) {
+static void hid_iface_ready(const struct device *dev, const bool ready) {
   LOG_INF("HID device %s interface is %s", dev->name,
           ready ? "ready" : "not ready");
 }
 
-static int mouse_get_report(const struct device *dev, const uint8_t type,
+static int hid_get_report(const struct device *dev, const uint8_t type,
                             const uint8_t id, const uint16_t len,
                             uint8_t *const buf) {
   LOG_WRN("Get Report not implemented, Type %u ID %u", type, id);
@@ -52,8 +60,19 @@ static int mouse_get_report(const struct device *dev, const uint8_t type,
   return 0;
 }
 
-static const struct hid_device_ops hid_ops = {.iface_ready = mouse_iface_ready,
-                                              .get_report = mouse_get_report};
+static int hid_set_report(const struct device *dev, const uint8_t type,
+                            const uint8_t id, const uint16_t len,
+                            const uint8_t *const buf) {
+  LOG_INF("Set Report: Type %u ID %u Len %u", type, id, len);
+  LOG_HEXDUMP_INF(buf, len, "Data");
+  return 0;
+}
+
+static const struct hid_device_ops hid_ops = {
+    .iface_ready = hid_iface_ready,
+    .get_report = hid_get_report,
+    .set_report = hid_set_report,
+};
 
 int main() {
 
@@ -70,6 +89,18 @@ int main() {
                             &hid_ops);
   if (err) {
     LOG_ERR("Failed to register HID Device");
+    return 1;
+  }
+
+  struct usbd_context *usbd_ctx = flasher_usbd_init_device(NULL);
+  if (!usbd_ctx) {
+    LOG_ERR("Failed to initialize USB device");
+    return 1;
+  }
+
+  err = usbd_enable(usbd_ctx);
+  if (err) {
+    LOG_ERR("Failed to enable usbd");
     return 1;
   }
 

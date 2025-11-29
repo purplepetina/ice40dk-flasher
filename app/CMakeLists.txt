@@ -11,5 +11,6 @@ project(app LANGUAGES C)
 
 target_sources(app PRIVATE 
 	src/main.c
+	src/usbd_init.c
 	src/w25q16_hal.c
 )
